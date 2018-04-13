@@ -30,7 +30,7 @@ class NodeInformation(object):
 			if node[0][0] == "" or node[1] == -1 or node[0][1] == -1 :
 				break
 			self.fingerTable[next_node] = node;
-			next_node++;	
+			next_node+=1;	
 
 	def stabilize():
 
@@ -48,7 +48,7 @@ class NodeInformation(object):
 
 		predecessorHash = predNode[1]
 
-		if predecessorHash == -1 || predecessor[1] == -1:
+		if predecessorHash == -1 or predecessor[1] == -1:
 			return
 
 		if predecessorHash > self.id or (predecessorHash > self.id and predecessorHash < self.successor[1]) or (predecessorHash < self.id and predecessorHash < self.successor[1]):
