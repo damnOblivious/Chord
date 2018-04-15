@@ -2,7 +2,9 @@ import sys
 import time
 import socket
 import threading
-from vars import *
+from variables import *
+import helper
+
 
 class Node(object):
 	def __init__(self):
@@ -19,12 +21,11 @@ class Node(object):
 
 	#skipped	def closestPrecedingNode(lli nodeId):#pair< pair<string,int> , lli >
 
-	def fixFingers():
-		help_er=HelperFunctions();
+	def fixFingers(self):
 		next_node = 1;
 		mod = 2**M
 		while next_node <= M:
-			if help.isNodeAlive(successor[0][0],successor[0][1]) == False:
+			if helper.isNodeAlive(successor[0][0],successor[0][1]) == False:
 				return;
 
 			newId = self.id + 2**(next_node-1)
@@ -36,17 +37,16 @@ class Node(object):
 			self.fingerTable[next_node] = node;
 			next_node+=1;
 
-	def stabilize():
-		help_er = HelperFunctions()
+	def stabilize(self):
 		ownIp = self.sp.getIpAddress()
 		ownPort = self.sp.getPortNumber()
 
-		if help_er.isNodeAlive(self.successor[0][0],self.successor[0][1]) == False:
+		if helper.isNodeAlive(self.successor[0][0],self.successor[0][1]) == False:
 			return
 
 		#get predecessor of self.successor
 		#pair< pair<string,int> , lli >
-		predNode = help_er.getPredecessorNode(self.successor[0][0],self.successor[0][1],ownIp,ownPort,true)
+		predNode = helper.getPredecessorNode(self.successor[0][0],self.successor[0][1],ownIp,ownPort,true)
 
 		predecessorHash = predNode[1]
 
@@ -56,7 +56,7 @@ class Node(object):
 		if predecessorHash > self.id or (predecessorHash > self.id and predecessorHash < self.successor[1]) or (predecessorHash < self.id and predecessorHash < self.successor[1]):
 			self.successor = predNode
 
-	def notify(node):
+	def notify(self, node):
 		#get id of node and predecessor
 		self.predecessorHash = predecessor[1];
 		self.nodeHash = node[1];
@@ -67,15 +67,14 @@ class Node(object):
 		if self.successor[1] == self.id:
 			self.successor = node;
 
-	def checkPredecessor():
+	def checkPredecessor(self):
 		if self.predecessor[1] == -1:
 			return;
 
-		help_er = HelperFunctions()
 		ip = self.predecessor[0][0];
 		port = self.predecessor[0][1];
 
-		if help_er.isNodeAlive(ip,port) == False:
+		if helper.isNodeAlive(ip,port) == False:
 			#/* if node has same successor and self.predecessor then set node as it's successor itself */
 			if self.predecessor[1] == self.successor[1]:
 
@@ -88,24 +87,21 @@ class Node(object):
 			self.predecessor[0][1] = -1;
 			self.predecessor[1] = -1;
 
-	def checkSuccessor():
+	def checkSuccessor(self):
 		if successor[1] == id:
 			return;
 
-		help_er = HelperFunctions()
 		ip = successor[0][0];
 		port = successor[0][1];
 
-		if help_er.isNodeAlive(ip,port) == False:
+		if helper.isNodeAlive(ip,port) == False:
 			successor = successorList[2];
 			self.updateSuccessorList();
 
-	def updateSuccessorList():
-
-		help_er = HelperFunctions()
+	def updateSuccessorList(self):
 
 		#vector< pair<string,int> >
-		suc_list = help_er.getSuccessorListFromNode(self.successor[0][0],self.successor[0][1])
+		suc_list = helper.getSuccessorListFromNode(self.successor[0][0],self.successor[0][1])
 
 		if len(suc_list) != R:
 			return
@@ -115,24 +111,24 @@ class Node(object):
 		for i in range(2,R+1):
 			successorList[i][0][0] = suc_list[i-2][0]
 			successorList[i][0][1] = suc_list[i-2][1]
-			successorList[i][1] = help_er.getHash(suc_list[i-2][0] + ":" + to_string(suc_list[i-2][1]))
+			successorList[i][1] = helper.getHash(suc_list[i-2][0] + ":" + to_string(suc_list[i-2][1]))
 
-	def printKeys():
+	def printKeys(self):
 		for item in dictionary:
 			print (item[0], item[1])
 
-	def storeKey(key, val):
+	def storeKey(self, key, val):
 		self.dictionary[key] = val
 
-	def getAllKeysForSuccessor(): #vector< pair<lli , string> >
+	def getAllKeysForSuccessor(self): #vector< pair<lli , string> >
 		# vector< pair<lli , string> > res
 		res=[]
 		for item in self.dictionary[:]:
 			res.append([item[0],item[1]])
 			self.dictionary.remove(item)
-
 		return res
-	def getKeysForPredecessor(nodeId):#vector< pair<lli , string> >
+
+	def getKeysForPredecessor(self, nodeId):#vector< pair<lli , string> >
 		res=[]
 		for item in self.dictionary[:]:
 			keyId = item[0]
@@ -151,54 +147,55 @@ class Node(object):
 
 		return res
 
-	def setSuccessor(ip, port, hash_code):
+	def setSuccessor(self, ip, port, hash_code):
 		#string ip,int port,lli hash
 		self.successor[0] = ip
 		self.successor[0][1] = port
 		self.successor[1] = hash_code
-	def setSuccessorList(ip, port, hash_code):
+
+	def setSuccessorList(self, ip, port, hash_code):
 		#string ip,int port,lli hash
 		for i in range(1, 1 + R):
 			self.successorList[i] = [[ip,port],hash_code]
 
-	def setPredecessor(ip, port, hash_code):
+	def setPredecessor(self, ip, port, hash_code):
 		#string ip,int port,lli hash_code
 		self.predecessor[0][0] = ip
 		self.predecessor[0][1] = port
 		self.predecessor[1] = hash_code
 
-	def setFingerTable(ip, port, hash):
+	def setFingerTable(self, ip, port, hash):
 		for i in range(1,1+M):
 			self.fingerTable[i] = [[ip,port],hash_code]
 
-	def setId(id_code):
+	def setId(self, id_code):
 		self.id = id_code
 
-	def setStatus():
+	def setInRing(self):
 		self.isInRing = True
 
-	def getId(): #lli
+	def getId(self): #lli
 		return self.id;
 
-	def getValue(key): #string
+	def getValue(self, key): #string
 		if key in dictionary:
 			return dictionary[key];
 		else:
 			return ""
 
-	def getFingerTable(): #vector< pair< pair<string,int> , lli > >
+	def getFingerTable(self):
 		return self.fingerTable
 
-	def getSuccessor(): # pair< pair<string,int> , lli >
+	def getSuccessor(self):
 		return self.successor
 
-	def getPredecessor(): # pair< pair<string,int> , lli >
+	def getPredecessor(self):
 		return self.predecessor
 
-	def getSuccessorList():#vector< pair< pair<string,int> , lli > >
+	def getSuccessorList(self):
 		return self.successorList
 
-	def getStatus(): #bool
+	def checkInRing(self):
 		return self.isInRing
 
 	def initiateSocket(self):
