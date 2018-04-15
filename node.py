@@ -12,6 +12,11 @@ class Node(object):
 		self.fingerTable = [[["", 0], 0]] * (M + 1)
 		self.successorList = [[["", 0], 0]] * (R + 1)
 		self.isInRing = False
+		self.id=0
+		self.predecessor= [["", 0], 0]
+		self.successor = [["", 0], 0]
+		self.dictionary={};
+
 
 
 	#skipped   def findSuccessor(self, nodeId):# pair< pair<string,int> , lli >
@@ -149,7 +154,7 @@ class Node(object):
 
 	def setSuccessor(self, ip, port, hash_code):
 		#string ip,int port,lli hash
-		self.successor[0] = ip
+		self.successor[0][0] = ip
 		self.successor[0][1] = port
 		self.successor[1] = hash_code
 
@@ -164,7 +169,7 @@ class Node(object):
 		self.predecessor[0][1] = port
 		self.predecessor[1] = hash_code
 
-	def setFingerTable(self, ip, port, hash):
+	def setFingerTable(self, ip, port, hash_code):
 		for i in range(1,1+M):
 			self.fingerTable[i] = [[ip,port],hash_code]
 
@@ -173,6 +178,8 @@ class Node(object):
 
 	def setInRing(self):
 		self.isInRing = True
+	def setStatus(self):
+		self.isInRing = True;
 
 	def getId(self): #lli
 		return self.id;
