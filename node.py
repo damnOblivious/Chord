@@ -8,7 +8,7 @@ import helper
 
 class Node(object):
 	def __init__(self):
-		self.sp = initiateSocket()
+		self.initiateSocket()
 		self.fingerTable = [[["", 0], 0]] * (self.M + 1)
 		self.successorList = [[["", 0], 0]] * (self.R + 1)
 		self.isInRing = False
@@ -20,7 +20,7 @@ class Node(object):
 
 
 	def findSuccessor(self, nodeId):# pair< pair<string,int> , lli >
-		this_node = [[self.sp.getIpAddress(),self.sp.getPortNumber()],self.id]
+		this_node = [[self.getIpAddress(),self.getPortNumber()],self.id]
 
 		if nodeId > self.id and nodeId <= self.successor[1]:
 			return self.successor
@@ -33,9 +33,9 @@ class Node(object):
 				if nodeId > self.successor[1] or nodeId < self.id:
 					return this_node
 			else:
-				if (nodeId > self.id and nodeId > self.successor[1]) or (nodeId < self.id && nodeId < self.successor[1]):
+				if (nodeId > self.id and nodeId > self.successor[1]) or (nodeId < self.id and nodeId < self.successor[1]):
 					return self.successor
-				else
+				else:
 					return this_node
 
 		else:
@@ -98,13 +98,13 @@ class Node(object):
 
 				# /* set ip,port and hash for this node and return it */
 				key = ipAndPort
-	    		hash_code = help_er.getHash(ipAndPort) 
-	    		ipAndPortPair = help_er.getIpAndPort(key)
-	    		node[0][0] = ipAndPortPair[0]
-	    		node[0][1] = ipAndPortPair[1]
-	    		node[1] = hash_code
+				hash_code = help_er.getHash(ipAndPort) 
+				ipAndPortPair = help_er.getIpAndPort(key)
+				node[0][0] = ipAndPortPair[0]
+				node[0][1] = ipAndPortPair[1]
+				node[1] = hash_code
 
-	    		return node
+				return node
 
 
 	def closestPrecedingNode(self, nodeId):
@@ -163,8 +163,8 @@ class Node(object):
 			next_node+=1
 
 	def stabilize(self):
-		ownIp = self.sp.getIpAddress()
-		ownPort = self.sp.getPortNumber()
+		ownIp = self.getIpAddress()
+		ownPort = self.getPortNumber()
 
 		if helper.isNodeAlive(self.successor[0][0],self.successor[0][1]) == False:
 			return
@@ -203,8 +203,8 @@ class Node(object):
 			#/* if node has same successor and self.predecessor then set node as it's successor itself */
 			if self.predecessor[1] == self.successor[1]:
 
-				self.successor[0][0] = self.sp.getIpAddress()
-				self.successor[0][1] = self.sp.getPortNumber()
+				self.successor[0][0] = self.getIpAddress()
+				self.successor[0][1] = self.getPortNumber()
 				self.successor[1] = self.id
 				self.setSuccessorList(self.successor[0][0],self.successor[0][1],self.id)
 
