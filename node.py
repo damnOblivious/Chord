@@ -8,26 +8,24 @@ import helper
 
 class Node(object):
 	def __init__(self):
-		self.initiateSocket()
-		self.fingerTable = [[["", 0], 0]] * (self.M + 1)
-		self.successorList = [[["", 0], 0]] * (self.R + 1)
+		self.id = 0
+		self.dictionary = {}
 		self.isInRing = False
-		self.id=0
-		self.predecessor= [["", 0], 0]
 		self.successor = [["", 0], 0]
-		self.dictionary={}
+		self.predecessor= [["", 0], 0]
+		self.fingerTable = [[["", 0], 0]] * (M + 1)
+		self.successorList = [[["", 0], 0]] * (R + 1)
 
+		self.initiateSocket()
+		self.intializeId()
 
-
-	def findSuccessor(self, nodeId):# pair< pair<string,int> , lli >
+	def findSuccessor(self, nodeId):
 		this_node = [[self.getIpAddress(),self.getPortNumber()],self.id]
 
 		if nodeId > self.id and nodeId <= self.successor[1]:
 			return self.successor
-
 		elif self.id == successor[1] or nodeId == self.id:
 			return this_node
-
 		elif self.successor[1] == self.predecessor[1]:
 			if self.successor[1] >= self.id:
 				if nodeId > self.successor[1] or nodeId < self.id:
@@ -37,7 +35,6 @@ class Node(object):
 					return self.successor
 				else:
 					return this_node
-
 		else:
 
 			node = closestPrecedingNode(nodeId)
@@ -47,47 +44,47 @@ class Node(object):
 
 				#/* connect to node which will now find the successor */
 				#<not_touched>
-
-				struct sockaddr_in serverToConnectTo
-				socklen_t len = sizeof(serverToConnectTo)
-
-				ip=''
-				port=0
-
-				#/* if this node couldn't find closest preciding node for given node id then now ask it's successor to do so */
-				if node[1] == -1:
-					node = self.successor
-
-				help_er = HelperFunctions()
-
-				help_er.setServerDetails(serverToConnectTo,node[0][0],node[0][1])
-
-				# /* set timer on this socket */
-
-	    		struct timeval timer
-	    		help_er.setTimer(timer)
-
-
-				int sockT = socket(AF_INET,SOCK_DGRAM,0)
-
-				setsockopt(sockT,SOL_SOCKET,SO_RCVTIMEO,(char*)&timer,sizeof(struct timeval))
-
-				if sockT < 0:
-					print("socket cre error")
-					perror("error")
-					exit(-1)
-
-				# /* send the node's id to the other node */
-				char nodeIdChar[40]
-				strcpy(nodeIdChar,to_string(nodeId).c_str())
-				sendto(sockT, nodeIdChar, strlen(nodeIdChar), 0, (struct sockaddr*) &serverToConnectTo, len)
-
-				# /* receive ip and port of node's successor as ip:port*/
-				char ipAndPort[40]
-
-				int l = recvfrom(sockT, ipAndPort, 1024, 0, (struct sockaddr *) &serverToConnectTo, &len)
-
-				close(sockT)
+                #
+				# struct sockaddr_in serverToConnectTo
+				# socklen_t len = sizeof(serverToConnectTo)
+                #
+				# ip=''
+				# port=0
+                #
+				# #/* if this node couldn't find closest preciding node for given node id then now ask it's successor to do so */
+				# if node[1] == -1:
+				# 	node = self.successor
+                #
+				# help_er = HelperFunctions()
+                #
+				# help_er.setServerDetails(serverToConnectTo,node[0][0],node[0][1])
+                #
+				# # /* set timer on this socket */
+                #
+	    		# struct timeval timer
+	    		# help_er.setTimer(timer)
+                #
+                #
+				# int sockT = socket(AF_INET,SOCK_DGRAM,0)
+                #
+				# setsockopt(sockT,SOL_SOCKET,SO_RCVTIMEO,(char*)&timer,sizeof(struct timeval))
+                #
+				# if sockT < 0:
+				# 	print("socket cre error")
+				# 	perror("error")
+				# 	exit(-1)
+                #
+				# # /* send the node's id to the other node */
+				# char nodeIdChar[40]
+				# strcpy(nodeIdChar,to_string(nodeId).c_str())
+				# sendto(sockT, nodeIdChar, strlen(nodeIdChar), 0, (struct sockaddr*) &serverToConnectTo, len)
+                #
+				# # /* receive ip and port of node's successor as ip:port*/
+				# char ipAndPort[40]
+                #
+				# int l = recvfrom(sockT, ipAndPort, 1024, 0, (struct sockaddr *) &serverToConnectTo, &len)
+                #
+				# close(sockT)
 				#</not_touched>
 
 				if l < 0:
@@ -98,7 +95,7 @@ class Node(object):
 
 				# /* set ip,port and hash for this node and return it */
 				key = ipAndPort
-				hash_code = help_er.getHash(ipAndPort) 
+				hash_code = help_er.getHash(ipAndPort)
 				ipAndPortPair = help_er.getIpAndPort(key)
 				node[0][0] = ipAndPortPair[0]
 				node[0][1] = ipAndPortPair[1]
@@ -129,7 +126,7 @@ class Node(object):
 				elif self.fingerTable[i][1] < successorId and nodeId > self.fingerTable[i][1] and nodeId < successorId:
 					return self.fingerTable[i]
 
-				
+
 				predNode = help_er.getPredecessorNode(self.fingerTable[i][0][0],self.fingerTable[i][0][1],"",-1,false)
 				predecessorId = predNode[1]
 
@@ -141,15 +138,13 @@ class Node(object):
 				if predecessorId != -1 and self.fingerTable[i][1] > predecessorId and nodeId >= predecessorId and nodeId <= self.fingerTable[i][1]:
 					return predNode
 
-
 		node = [["",-1],-1]
-
 		return node
 
 	def fixFingers(self):
 		next_node = 1
-		mod = 2**self.M
-		while next_node <= self.M:
+		mod = 2 ** M
+		while next_node <= M:
 			if helper.isNodeAlive(self.successor[0][0],self.successor[0][1]) == False:
 				return
 
@@ -170,7 +165,6 @@ class Node(object):
 			return
 
 		#get predecessor of self.successor
-		#pair< pair<string,int> , lli >
 		predNode = helper.getPredecessorNode(self.successor[0][0],self.successor[0][1],ownIp,ownPort,true)
 
 		predecessorHash = predNode[1]
@@ -213,22 +207,19 @@ class Node(object):
 			self.predecessor[1] = -1
 
 	def checkSuccessor(self):
-		if self.successor[1] == id:
+		if self.successor[1] == self.id:
 			return
 
-		ip = self.successor[0][0]
-		port = self.successor[0][1]
+		ip , port = self.successor[0][0], self.successor[0][1]
 
 		if helper.isNodeAlive(ip,port) == False:
 			self.successor = self.successorList[2]
 			self.updateSuccessorList()
 
 	def updateSuccessorList(self):
-
-		#vector< pair<string,int> >
 		suc_list = helper.getSuccessorListFromNode(self.successor[0][0],self.successor[0][1])
 
-		if len(suc_list) != self.R:
+		if len(suc_list) != R:
 			return
 
 		self.successorList[1] = self.successor
@@ -246,7 +237,6 @@ class Node(object):
 		self.dictionary[key] = val
 
 	def getAllKeysForSuccessor(self): #vector< pair<lli , string> >
-		# vector< pair<lli , string> > res
 		res=[]
 		for item in self.dictionary:
 			res.append([self.dictionary[item][0],self.dictionary[item][1]])
@@ -271,24 +261,21 @@ class Node(object):
 		return res
 
 	def setSuccessor(self, ip, port, hash_code):
-		#string ip,int port,lli hash
 		self.successor[0][0] = ip
 		self.successor[0][1] = port
 		self.successor[1] = hash_code
 
 	def setSuccessorList(self, ip, port, hash_code):
-		#string ip,int port,lli hash
-		for i in range(1, 1 + self.R):
+		for i in range(1, 1 + R):
 			self.successorList[i] = [[ip,port],hash_code]
 
 	def setPredecessor(self, ip, port, hash_code):
-		#string ip,int port,lli hash_code
 		self.predecessor[0][0] = ip
 		self.predecessor[0][1] = port
 		self.predecessor[1] = hash_code
 
 	def setFingerTable(self, ip, port, hash_code):
-		for i in range(1,1+self.M):
+		for i in range(1, 1 + M):
 			self.fingerTable[i] = [[ip,port],hash_code]
 
 	def setId(self, id_code):
@@ -296,13 +283,11 @@ class Node(object):
 
 	def setInRing(self):
 		self.isInRing = True
-	def setStatus(self):
-		self.isInRing = True
 
-	def getId(self): #lli
+	def getId(self):
 		return self.id
 
-	def getValue(self, key): #string
+	def getValue(self, key):
 		if key in self.dictionary:
 			return self.dictionary[key]
 		else:
@@ -338,6 +323,9 @@ class Node(object):
 			print(str(e))
 		self.soc.listen(128)
 
+	def getNodeSock(self):
+		return self.soc
+
 	def getIpAddress(self):
 		return self.soc.getsockname()[0]
 
@@ -346,3 +334,9 @@ class Node(object):
 
 	def closeSocket(self):
 		self.soc.close()
+
+	def intializeId(self):
+		ip ,port = self.getIpAddress(), self.getPortNumber()
+		key = ip + ":" + str(port)
+		hashVal = helper.getHash(key)
+		self.setId(hashVal);

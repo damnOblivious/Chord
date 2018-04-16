@@ -8,16 +8,14 @@ from node import Node
 def isBlank(st):
     return not (st and st.strip())
 
-newNode = Node();
+newNode = Node()
 print("New node created, listening at port number " + str(newNode.getPortNumber()))
 print("Type help to know more")
 
-th = threading.Thread(target=functions.create, args=(newNode,))
-th.daemon = True
-th.start()
-
+endLoop = False
 command = ''
-while True:
+
+while not endLoop:
     while(isBlank(command)):
         command = input(">>> " )
     arguments = command.split()
@@ -25,12 +23,47 @@ while True:
     if len(arguments) == 1:
         if arguments[0] == "create":
             if newNode.checkInRing():
-                print("The node is already in a ring, so can't create a new ring with it\n")
+                print("The node is already in a ring, so can't create a new ring with it")
             else:
                 print("----------------------------->creating")
-                th = threading.Thread(target=functions.create, args=(newNode,))
-                th.daemon = True
-                th.start()
+                first = threading.Thread(target=functions.create, args=(newNode,))
+                first.daemon = True
+                first.start()
+        elif arguments[0] == "printstate":
+            if not newNode.checkInRing():
+                print("The current node is not associated to any ring")
+            else:
+                functions.printState(newNode)
+        elif arguments[0] == "printkeys":
+            if not newNode.checkInRing():
+                print("The current node is not associated to any ring")
+            else:
+                newNode.printKeys()
+        elif arguments[0] == "leave":
+            functions.leave(newNode)
+            endLoop = True
+        elif arguments[0] == "port":
+            print(str(newNode.getPortNumber()))
+        elif arguments[0] == "help":
+            functions.showHelp()
+        else:
+            print("Invalid Command")
+
+    elif len(arguments) == 2:
+        pass
+
+    elif len(arguments) == 3:
+        if arguments[0] == "join":
+            if newNode.checkInRing():
+                print("The node is already in a ring, so can't add it to a new ring\n")
+            else:
+                try:
+                    temp = int(arguments[2])
+                except ValueError:
+                    print("Please enter an integer")
+                functions.join(newNode, arguments[1], arguments[2])
+        else:
+            print("Invalid Command")
 
 
     command = ''
