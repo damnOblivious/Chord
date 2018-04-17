@@ -40,72 +40,39 @@ class Node(object):
 			node = closestPrecedingNode(nodeId)
 			if node[1] == self.id:
 				return self.successor
-			else:
-
-				#/* connect to node which will now find the successor */
-				#<not_touched>
-                #
-				# struct sockaddr_in serverToConnectTo
-				# socklen_t len = sizeof(serverToConnectTo)
-                #
-				# ip=''
-				# port=0
-                #
-				# #/* if this node couldn't find closest preciding node for given node id then now ask it's successor to do so */
-				# if node[1] == -1:
-				# 	node = self.successor
-                #
-				# help_er = HelperFunctions()
-                #
-				# help_er.setServerDetails(serverToConnectTo,node[0][0],node[0][1])
-                #
-				# # /* set timer on this socket */
-                #
-	    		# struct timeval timer
-	    		# help_er.setTimer(timer)
-                #
-                #
-				# int sockT = socket(AF_INET,SOCK_DGRAM,0)
-                #
-				# setsockopt(sockT,SOL_SOCKET,SO_RCVTIMEO,(char*)&timer,sizeof(struct timeval))
-                #
-				# if sockT < 0:
-				# 	print("socket cre error")
-				# 	perror("error")
-				# 	exit(-1)
-                #
-				# # /* send the node's id to the other node */
-				# char nodeIdChar[40]
-				# strcpy(nodeIdChar,to_string(nodeId).c_str())
-				# sendto(sockT, nodeIdChar, strlen(nodeIdChar), 0, (struct sockaddr*) &serverToConnectTo, len)
-                #
-				# # /* receive ip and port of node's successor as ip:port*/
-				# char ipAndPort[40]
-                #
-				# int l = recvfrom(sockT, ipAndPort, 1024, 0, (struct sockaddr *) &serverToConnectTo, &len)
-                #
-				# close(sockT)
-				#</not_touched>
+			else:				
+                
+				#/* if this node couldn't find closest preciding node for given node id then now ask it's successor to do so */
+				if node[1] == -1:
+					node = self.successor
+				
+				ip=node[0][0]
+				port=node[0][1]
+				
+				sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+				
+				try:
+					sock.connect((ip, int(port)))
+					msg = str(nodeId)
+					sock.send(msg.encode('ascii'))
+					ipAndPort = sock.recv(4096).decode('ascii')
+					sock.close()
+				except socket.error as e:
+					print(str(e))
 
 				if l < 0:
 					node = [['',-1],-1]
 					return node
 
-				ipAndPort[l] = '\0'
-
 				# /* set ip,port and hash for this node and return it */
 				key = ipAndPort
-				hash_code = help_er.getHash(ipAndPort)
-				ipAndPortPair = help_er.getIpAndPort(key)
-				node[0][0] = ipAndPortPair[0]
-				node[0][1] = ipAndPortPair[1]
-				node[1] = hash_code
+				hash_code = helper.getHash(ipAndPort)
+				ipAndPortPair = helper.getIpAndPort(key)
 
-				return node
+				return [ipAndPortPair, hash_code]
 
 
 	def closestPrecedingNode(self, nodeId):
-		help_er=HelperFunctions()
 		for i in range(self.M,0,-1):
 			if self.fingerTable[i][0][0] == "" or self.fingerTable[i][0][1] == -1 or self.fingerTable[i][1] == -1:
 				continue
@@ -114,7 +81,7 @@ class Node(object):
 				return self.fingerTable[i]
 			else:
 
-				successorId = help_er.getSuccessorId(self.fingerTable[i][0][0],self.fingerTable[i][0][1])
+				successorId = helper.getSuccessorId(self.fingerTable[i][0][0],self.fingerTable[i][0][1])
 
 				if successorId == -1:
 					continue
@@ -127,7 +94,7 @@ class Node(object):
 					return self.fingerTable[i]
 
 
-				predNode = help_er.getPredecessorNode(self.fingerTable[i][0][0],self.fingerTable[i][0][1],"",-1,false)
+				predNode = helper.getPredecessorNode(self.fingerTable[i][0][0],self.fingerTable[i][0][1],"",-1,false)
 				predecessorId = predNode[1]
 
 				if predecessorId != -1 and self.fingerTable[i][1] < predecessorId:
