@@ -44,11 +44,10 @@ def storeAllKeys(myNode, keysAndValues):
     @return void
 '''
 def sendSuccessor(myNode, hashVal, clientConnection):
-    succesorNode = [['oblivious', 6556], 656565]
-    # succesorNode = myNode.findSuccessor(hashVal)
+    # succesorNode = [['oblivious', 6556], 656565]
+    succesorNode = myNode.findSuccessor(hashVal)
     ipAndPort = succesorNode[0][0] + ":" + str(succesorNode[0][1])
     clientConnection.send(ipAndPort.encode('ascii'))
-    clientConnection.close()
 
 '''
     send msg to the succesor asking for (key,val) pairs that belongs to me
@@ -63,20 +62,16 @@ def getKeysFromSuccessor(myNode, ip, port):
         newConnection.connect((ip, int(port)))
         msg = "getKeys:" + myNode.getId()
         newConnection.send(msg.encode('ascii'))
-        # keysAndValues = newConnection.recv(4096).decode('ascii') #NOTE MODULE TESTING PHASE
-        newConnection.send(msg.encode('ascii'))
-        newConnection.close()
+        keysAndValues = newConnection.recv(4096).decode('ascii') #NOTE MODULE TESTING PHASE
+        # newConnection.send(msg.encode('ascii'))
     except socket.error as e:
         print(str(e))
 
-    keysAndValues = "key1:val1;key2:val2;key3:val3;key4:val4;" #NOTE MODULE TESTING PHASE
+    # keysAndValues = "key1:val1;key2:val2;key3:val3;key4:val4;" #NOTE MODULE TESTING PHASE
     res = seperateKeysAndValues(keysAndValues)
-    print(res)
+    # print(res)
     for pair in res:
         myNode.storeKey(pair[0],pair[1])
-
-
-
 
 def sendValToNode(nodeInfo, client, nodeIdString):
     key = int(nodeIdString)
@@ -84,7 +79,6 @@ def sendValToNode(nodeInfo, client, nodeIdString):
 
     try:
         client.send(val.encode('ascii'))
-        client.close()
     except socket.error as e:
         print(str(e))
 
@@ -98,7 +92,6 @@ def getSuccessorId(ip, port):
         msg = "finger"
         sock.send(msg.encode('ascii'))
         succIdChar = sock.recv(4096).decode('ascii') 
-        sock.close()
     except socket.error as e:
         print(str(e))
 
@@ -125,9 +118,9 @@ def getPredecessorNode(ip, port, ipClient, portClient, forStabilize):
         msg = "finger"
         sock.send(msg.encode('ascii'))
         ipAndPort = sock.recv(4096).decode('ascii') 
-        sock.close()
     except socket.error as e:
         print(str(e))
+        return [['',-1],-1]
 
     node=[['',-1],-1]
     
@@ -154,9 +147,9 @@ def getSuccessorListFromNode(ip, port):
         msg = "sendSuccList"
         sock.send(msg.encode('ascii'))
         succList = sock.recv(4096).decode('ascii')
-        sock.close()
     except socket.error as e:
         print(str(e))
+        return []
 
     if succList == None:# no response
         return []
@@ -175,7 +168,6 @@ def sendSuccessorList(nodeInfo, client):
     try:
         msg = successorList
         client.send(msg.encode('ascii'))
-        client.close()
     except socket.error as e:
         print(str(e))
 
@@ -187,7 +179,6 @@ def isNodeAlive(ip, port):
         msg = "alive"
         sock.send(msg.encode('ascii'))
         response = sock.recv(4096).decode('ascii')
-        sock.close()
     except socket.error as e:
         return False
 
@@ -222,3 +213,126 @@ def splitSuccessorList(succList):
         res = res + key[0][0] + ':' + int(key[0][1]) + ';'
 
     return res
+
+
+def sendTest(clientConnection):
+    msg="This is test"
+    clientConnection.send(msg.encode('ascii'))
+
+
+def getTest(ip, port):
+    
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.connect((ip, int(port)))
+        msg = "sendTest"
+        sock.send(msg.encode('ascii'))
+        succList = sock.recv(4096).decode('ascii')
+    except socket.error as e:
+        print(str(e))
+        return []
+
+    if len(succList) == 0: # no response
+        return []
+
+    print(succList)
+
+
+# send ack to contacting node that this node is still alive 
+def sendAcknowledgement(clientConnection):
+    msg="1"
+    clientConnection.send(msg.encode('ascii'))
+
+
+# send ip:port of predecessor of current node to contacting node 
+def sendPredecessor(nodeInfo, clientConnection):
+    
+    predecessor = nodeInfo.getPredecessor()
+    ip = predecessor[0][0]
+    port = to_string(predecessor[0][1])
+    msg=''
+    ipAndPort = combineIpAndPort(ip,port)
+    clientConnection.send(msg.encode('ascii'))
+
+
+# send successor id of current node to the contacting node
+def sendSuccessorId(nodeInfo, clientConnection):
+
+    succ = nodeInfo.getSuccessor()
+    msg = str(succ[1])
+    clientConnection.send(msg.encode('ascii'))
+
+
+# send all keys to the newly joined node which belong to it now 
+def sendNeccessaryKeys(nodeInfo, clientConnection, nodeIdString):
+    nodeId = int(nodeIdString.split(':')[1])
+
+    keysAndValuesVector = nodeInfo.getKeysForPredecessor(nodeId)
+
+    keysAndValues = ""
+
+    # will arrange all keys and val in form of key1:val1;key2:val2;
+    for key_val in keysAndValuesVector:
+        keysAndValues += str(key_val[0]) + ":" + key_val[0] + ';'
+    
+    clientConnection.send(keysAndValues.encode('ascii'))
+
+
+# send key to node who requested for it
+def sendKeyToNode(node, keyHash, value):
+
+    ip = node[0][0]
+    port = node[0][1]
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.connect((ip, int(port)))
+        keyAndVal = str(keyHash)+':'+str(value)
+        sock.send(keyAndVal.encode('ascii'))
+        res = sock.recv(4096).decode('ascii')
+
+    except socket.error as e:
+        print(str(e))
+
+
+#  will contact a node and get value of a particular key from that node 
+def getKeyFromNode(node, keyHash):
+    ip = node[0][0];
+    port = node[0][1];
+
+    keyHash += "k";
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.connect((ip, int(port)))
+        msg = keyHash
+        sock.send(msg.encode('ascii'))
+        val = sock.recv(4096).decode('ascii')
+
+    except socket.error as e:
+        print(str(e))
+        return ''
+
+    return val;
+
+
+#  will decide if id is in form of key:value or not 
+def isKeyValue(key_val):
+
+    if ':' not in key_val:
+        return False
+
+    key, val = key_val.split(':')
+
+    for i in key:
+        if int(i) < 48 or int(i) > 57:
+            return False
+
+    return True
+
+
+# key will be in form of key:value , will seperate key and value and return it 
+def getKeyAndVal(keyAndVal):
+
+    key, val = key_val.split(':')
+    key = int(key)
+
+    return [key,val]

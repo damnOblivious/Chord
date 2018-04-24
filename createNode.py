@@ -3,6 +3,7 @@ import time
 import socket
 import threading
 import functions
+import helper
 from node import Node
 
 def isBlank(st):
@@ -10,6 +11,7 @@ def isBlank(st):
 
 newNode = Node()
 print("New node created, listening at port number " + str(newNode.getPortNumber()))
+print("New node created, listening at ip " + str(newNode.getIpAddress()))
 print("Type help to know more")
 
 endLoop = False
@@ -46,6 +48,8 @@ while not endLoop:
             print(str(newNode.getPortNumber()))
         elif arguments[0] == "help":
             functions.showHelp()
+        elif arguments[0] == "test":
+            functions.showHelp()
         else:
             print("Invalid Command")
 
@@ -62,6 +66,12 @@ while not endLoop:
                 except ValueError:
                     print("Please enter an integer")
                 functions.join(newNode, arguments[1], arguments[2])
+        elif arguments[0] == "test":
+            try:
+                temp = int(arguments[2])
+            except ValueError:
+                print("Please enter an integer")
+            helper.getTest(arguments[1], arguments[2])
         else:
             print("Invalid Command")
 
