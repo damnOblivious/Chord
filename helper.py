@@ -1,6 +1,6 @@
 import socket
 import hashlib
-
+import traceback
 from variables import *
 
 '''
@@ -13,6 +13,8 @@ def getHash(key):
 	sha_1 = hashlib.sha1(key.encode('ascii'))
 	hashHex = sha_1.hexdigest()[:sizeOfReqBits]
 	hashOutput = int(hashHex, 16) % (2 ** M)
+	if key==':-1':
+		return -1
 	return hashOutput
 
 '''
@@ -57,7 +59,7 @@ def sendSuccessor(myNode, hashVal, clientConnection):
 '''
 def getKeysFromSuccessor(myNode, ip, port):
 
-	msg = "getKeys:" + myNode.getId()
+	msg = "getKeys:" + str(myNode.getId())
 	keysAndValues = socket_send_recv(ip, port, msg, "")
 	# keysAndValues = "key1:val1;key2:val2;key3:val3;key4:val4;" 
 	res = seperateKeysAndValues(keysAndValues)
@@ -68,6 +70,7 @@ def getKeysFromSuccessor(myNode, ip, port):
 def sendValToNode(nodeInfo, client, nodeIdString):
 	nodeIdString = nodeIdString[:-1]
 	key = int(nodeIdString)
+	print(key)
 	val = nodeInfo.getValue(key)
 	msg = val
 	socket_send_only(msg, client)
@@ -75,7 +78,7 @@ def sendValToNode(nodeInfo, client, nodeIdString):
 
 def getSuccessorId(ip, port):
 
-	msg = keyHash
+	msg = "finger"
 	succIdChar = socket_send_recv(ip, port, msg, 0)
 	
 	return int(succIdChar)
@@ -93,11 +96,13 @@ def getPredecessorNode(ip, port, ipClient, portClient, forStabilize):
 	else:
 		msg = "p2"
 
-	ipAndPort = socket_send_recv(ip, port, msg, [['',-1],-1])
+	ipAndPort = socket_send_recv(ip, port, msg, '')
+	node = [['',-1],-1]
+	if ipAndPort != ':-1' and ipAndPort!='' and ipAndPort!='-1':
 
-	ipAndPortPair = getIpAndPort(ipAndPort)
+		ipAndPortPair = getIpAndPort(ipAndPort)
 
-	node = [ipAndPortPair, getHash(ipAndPort)]
+		node = [ipAndPortPair, getHash(ipAndPort)]
 
 	return node
 
@@ -108,7 +113,6 @@ def getSuccessorListFromNode(ip, port):
 	succList = socket_send_recv(ip, port, msg, [])
 	if len(succList) == 0: # no response
 		return []
-
 	successorList = seperateSuccessorList(succList)
 
 	return successorList
@@ -121,12 +125,11 @@ def sendSuccessorList(nodeInfo, client):
 	socket_send_only(msg, client)
 
 def isNodeAlive(ip, port):
-
 	msg = "alive"
 	res = socket_send_recv(ip, port, msg, False)
 
 	if res == False:
-		return False
+		return res
 	return True
 
 
@@ -135,8 +138,16 @@ def combineIpAndPort(ip, port):
 	return ipAndPort
 
 def getIpAndPort(key):
-	ip, port = key.split(':')
-	return [ip,int(port)]
+	# print('ipandport->',key)
+	split = key.split(':')
+	if len(split)==2:
+		ip, port = key.split(':')
+		return [ip,int(port)]
+	elif len(split)==1:
+		if '0' in key:
+			return ['',0]
+		else:
+			return ['',-1]
 
 
 def seperateSuccessorList(succList):
@@ -147,10 +158,10 @@ def seperateSuccessorList(succList):
 	return res
 
 def splitSuccessorList(succList):
+	
 	res = ""
 	for key in succList:
-		res = res + key[0][0] + ':' + int(key[0][1]) + ';'
-
+		res = res + key[0][0] + ':' + str(key[0][1]) + ';'
 	return res
 
 
@@ -233,7 +244,8 @@ def getKeyFromNode(node, keyHash):
 	return res
 
 def socket_send_recv(ip, port, msg, no_res):
-
+	if int(port) < 0 or int(port ) > 65535:
+		return no_res
 
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
@@ -258,11 +270,10 @@ def isKeyValue(key_val):
 
 	if ':' not in key_val:
 		return False
-
 	key, val = key_val.split(':')
-
+	print(key, val)	
 	for i in key:
-		if int(i) < 48 or int(i) > 57:
+		if int(i) <0 or int(i)>9:
 			return False
 
 	return True
@@ -271,7 +282,7 @@ def isKeyValue(key_val):
 # key will be in form of key:value , will seperate key and value and return it 
 def getKeyAndVal(keyAndVal):
 
-	key, val = key_val.split(':')
+	key, val = keyAndVal.split(':')
 	key = int(key)
-
+	print('inserted->',key, val)
 	return [key,val]

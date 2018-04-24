@@ -24,7 +24,7 @@ class Node(object):
 
 		if nodeId > self.id and nodeId <= self.successor[1]:
 			return self.successor
-		elif self.id == successor[1] or nodeId == self.id:
+		elif self.id == self.successor[1] or nodeId == self.id:
 			return this_node
 		elif self.successor[1] == self.predecessor[1]:
 			if self.successor[1] >= self.id:
@@ -37,7 +37,7 @@ class Node(object):
 					return this_node
 		else:
 
-			node = closestPrecedingNode(nodeId)
+			node = self.closestPrecedingNode(nodeId)
 			if node[1] == self.id:
 				return self.successor
 			else:				
@@ -52,7 +52,7 @@ class Node(object):
 				
 				ipAndPort = helper.socket_send_recv(ip, port, msg, '')
 
-				if len(ipAndPort) < 0:
+				if len(ipAndPort) <= 0:
 					node = [['',-1],-1]
 					return node
 
@@ -65,7 +65,7 @@ class Node(object):
 
 
 	def closestPrecedingNode(self, nodeId):
-		for i in range(self.M,0,-1):
+		for i in range(M,0,-1):
 			if self.fingerTable[i][0][0] == "" or self.fingerTable[i][0][1] == -1 or self.fingerTable[i][1] == -1:
 				continue
 
@@ -79,14 +79,14 @@ class Node(object):
 					continue
 
 				if self.fingerTable[i][1] > successorId:
-					if (nodeId <= self.fingerTable[i][1] and nodeId <= successorId) or (nodeId >= self.fingerTable[i][1] and nodeId >= self.successorId):
+					if (nodeId <= self.fingerTable[i][1] and nodeId <= successorId) or (nodeId >= self.fingerTable[i][1] and nodeId >= successorId):
 						return self.fingerTable[i]
 
 				elif self.fingerTable[i][1] < successorId and nodeId > self.fingerTable[i][1] and nodeId < successorId:
 					return self.fingerTable[i]
 
 
-				predNode = helper.getPredecessorNode(self.fingerTable[i][0][0],self.fingerTable[i][0][1],"",-1,false)
+				predNode = helper.getPredecessorNode(self.fingerTable[i][0][0],self.fingerTable[i][0][1],"",-1,False)
 				predecessorId = predNode[1]
 
 				if predecessorId != -1 and self.fingerTable[i][1] < predecessorId:
@@ -109,7 +109,6 @@ class Node(object):
 
 			newId = self.id + 2**(next_node-1)
 			newId = newId % mod
-			# pair< pair<string,int> , lli >
 			node = self.findSuccessor(newId)
 			if node[0][0] == "" or node[1] == -1 or node[0][1] == -1:
 				break
@@ -124,7 +123,7 @@ class Node(object):
 			return
 
 		#get predecessor of self.successor
-		predNode = helper.getPredecessorNode(self.successor[0][0],self.successor[0][1],ownIp,ownPort,true)
+		predNode = helper.getPredecessorNode(self.successor[0][0],self.successor[0][1],ownIp,ownPort,True)
 
 		predecessorHash = predNode[1]
 
@@ -136,8 +135,8 @@ class Node(object):
 
 	def notify(self, node):
 		#get id of node and predecessor
-		self.predecessorHash = self.predecessor[1]
-		self.nodeHash = node[1]
+		predecessorHash = self.predecessor[1]
+		nodeHash = node[1]
 
 		self.predecessor = node
 
@@ -172,12 +171,13 @@ class Node(object):
 		ip , port = self.successor[0][0], self.successor[0][1]
 
 		if helper.isNodeAlive(ip,port) == False:
+			# print('not alive->',self.successor[1])
 			self.successor = self.successorList[2]
 			self.updateSuccessorList()
 
 	def updateSuccessorList(self):
-		suc_list = helper.getSuccessorListFromNode(self.successor[0][0],self.successor[0][1])
 
+		suc_list = helper.getSuccessorListFromNode(self.successor[0][0],self.successor[0][1])
 		if len(suc_list) != R:
 			return
 
@@ -190,7 +190,7 @@ class Node(object):
 
 	def printKeys(self):
 		for item in self.dictionary:
-			print (self.dictionary[item][0], self.dictionary[item][1])
+			print (item, self.dictionary[item])
 
 	def storeKey(self, key, val):
 		self.dictionary[key] = val
@@ -198,24 +198,24 @@ class Node(object):
 	def getAllKeysForSuccessor(self): #vector< pair<lli , string> >
 		res=[]
 		for item in self.dictionary:
-			res.append([self.dictionary[item][0],self.dictionary[item][1]])
+			res.append([item,self.dictionary[item]])
 		self.dictionary={}
 		return res
 
 	def getKeysForPredecessor(self, nodeId):#vector< pair<lli , string> >
 		res=[]
 		for item in self.dictionary:
-			keyId = item[0]
+			keyId = item
 
 			#if predecessor's id is more than current node's id
 			if self.id < nodeId:
-				if keyId > id and keyId <= nodeId:
-					res.append([keyId, self.dictionary[item][1]])
+				if keyId > self.id and keyId <= nodeId:
+					res.append([keyId, self.dictionary[item]])
 
 			#if predecessor's id is less than current node's id
 			else:
 				if keyId <= nodeId or keyId > self.id:
-					res.append([keyId, self.dictionary[item][1]])
+					res.append([keyId, self.dictionary[item]])
 		self.dictionary = {}
 		return res
 

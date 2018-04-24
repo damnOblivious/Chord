@@ -2,7 +2,7 @@ import sys
 import time
 import socket
 import threading
-
+from variables import *
 import helper
 
 '''
@@ -23,9 +23,9 @@ def create(myNode):
     second.daemon = True
     second.start()
 
-    # fifth = threading.Thread(target=doStabilize, args=(myNode,))
-    # fifth.daemon = True
-    # fifth.start()
+    fifth = threading.Thread(target=doStabilize, args=(myNode,))
+    fifth.daemon = True
+    fifth.start()
 
 '''
     sends requests a node of the ring to find it's successor
@@ -40,33 +40,33 @@ def join(myNode, ip, port):
     #     return
     myId = myNode.getId()
 
-    print("about to connect to", ip, port)
 
     msg = str(myId)
     ipAndPort = helper.socket_send_recv(ip, port, msg, "No")
-
-    if ipAndPort != "No":
-        print("Successfully joined the ring")
+    if ipAndPort == "No":
+        print('Error : ip address not found')
+    else:
+        print("Successfully joined the ring\n")
         print(ipAndPort)
 
-    address = ipAndPort.split(":")
-    idVal, port, hashVal = address[0], int(address[1]), helper.getHash(ipAndPort)
-    myNode.setSuccessor(ip, port, idVal)
-    myNode.setSuccessorList(ip, port, idVal)
-    myNode.setPredecessor("", -1, -1)
-    myNode.setFingerTable(ip, port, idVal)
-    myNode.setInRing()
+        address = ipAndPort.split(":")
+        ip, port, hashVal = address[0], int(address[1]), helper.getHash(ipAndPort)
+        myNode.setSuccessor(ip, port, hashVal)
+        myNode.setSuccessorList(ip, port, hashVal)
+        myNode.setPredecessor("", -1, -1)
+        myNode.setFingerTable(ip, port, hashVal)
+        myNode.setInRing()
 
-    helper.getKeysFromSuccessor(myNode , ip, port)
+        helper.getKeysFromSuccessor(myNode , ip, port)
 
-    # launch threads,one thread will listen to request from other nodes,one will do stabilization
-    second = threading.Thread(target=listenTo, args=(myNode,))
-    second.daemon = True
-    second.start()
+        # launch threads,one thread will listen to request from other nodes,one will do stabilization
+        second = threading.Thread(target=listenTo, args=(myNode,))
+        second.daemon = True
+        second.start()
 
-    # fifth = threading.Thread(target=doStabilize, args=(myNode,))
-    # fifth.daemon = True
-    # fifth.start()
+        fifth = threading.Thread(target=doStabilize, args=(myNode,))
+        fifth.daemon = True
+        fifth.start()
 
 
 '''
@@ -78,7 +78,6 @@ def listenTo(myNode):
     # print("going to listten")
     while(True):
         clientConnection, clientAddress = myNode.soc.accept()
-        print("JUST GOT A MSG")
         msg = clientConnection.recv(1024).decode('ascii')
         f = threading.Thread(target=doTask, args=(myNode, clientConnection, clientAddress, msg))
         f.daemon = True
@@ -98,29 +97,26 @@ def doTask(myNode, clientConnection, clientAddress, msg):
         helper.sendTest(clientConnection)
 
     # check if the sent msg is in form of key:val, if yes then store it in current node (for put )
-    elif helper.isKeyValue(msg):
-        keyAndVal = helper.getKeyAndVal(msg)
-        myNode.storeKey(keyAndVal[0], keyAndVal[1])
-        helper.socket_send_only("1", clientConnection)
+    
     
     elif msg.find("alive") != -1:
-        helper.sendAcknowledgement(client)
+        helper.sendAcknowledgement(clientConnection)
     
     # contacting node wants successor list of this node
     elif msg.find("sendSuccList") != -1:
-        helper.sendSuccessorList(myNode, client)
+        helper.sendSuccessorList(myNode, clientConnection)
     
     # contacting node has just joined the ring and is asking for keys that belongs to it now
     elif msg.find("getKeys") != -1:
-        helper.sendNeccessaryKeys(myNode,client,msg)
+        helper.sendNeccessaryKeys(myNode,clientConnection,msg)
     
     # contacting node has run get command so send value of key it requires
     elif msg.find("k") != -1:
-        helper.sendValToNode(myNode,client,msg)
+        helper.sendValToNode(myNode,clientConnection,msg)
     
     # contacting node wants the predecessor of this node
     elif msg.find("p") != -1:
-        helper.sendPredecessor(myNode,client)
+        helper.sendPredecessor(myNode,clientConnection)
         # p1 in msg means that notify the current node about this contacting node
     
         if msg.find("p1") != -1:
@@ -128,9 +124,13 @@ def doTask(myNode, clientConnection, clientAddress, msg):
     
     # contacting node wants successor Id of this node for help in finger table
     elif msg.find("finger") != -1:
-        helper.sendSuccessorId(myNode,client)
+        helper.sendSuccessorId(myNode,clientConnection)
     
     # contacting node wants current node to find successor for it
+    elif helper.isKeyValue(msg):
+        keyAndVal = helper.getKeyAndVal(msg)
+        myNode.storeKey(keyAndVal[0], keyAndVal[1])
+        helper.socket_send_only("1", clientConnection)
     else:
         helper.sendSuccessor(myNode, int(msg), clientConnection)
     
@@ -200,12 +200,12 @@ def put(key, value, nodeInfo):
         return
     else:
 
-        keyHash = help.getHash(key)
+        keyHash = helper.getHash(key)
         print("Key is ", key, " and hash : ", keyHash)
 
         node = nodeInfo.findSuccessor(keyHash)
 
-        help.sendKeyToNode(node,keyHash,value)
+        helper.sendKeyToNode(node,keyHash,value)
 
         print("key entered successfully")
 
@@ -216,11 +216,11 @@ def get(key, nodeInfo):
         return 
     else:
         
-        keyHash = help.getHash(key)
+        keyHash = helper.getHash(key)
 
         node = nodeInfo.findSuccessor(keyHash)
 
-        val = help.getKeyFromNode(node,str(keyHash))
+        val = helper.getKeyFromNode(node,str(keyHash))
 
         if val == "":
             print("Key Not found")
@@ -235,11 +235,11 @@ def printState(nodeInfo):
     my_id = nodeInfo.getId()
     port = nodeInfo.getPortNumber()
     fingerTable = nodeInfo.getFingerTable()
-    print("Self ", ip, " ", port, " "<<my_id)
+    print("Self ", ip, " ", port, " ", my_id)
     succ = nodeInfo.getSuccessor()
     pre = nodeInfo.getPredecessor()
     succList = nodeInfo.getSuccessorList()
-    print("Succ ", succ[0][0], " ", succ[0][1], " ", succ[1])<<endl
+    print("Succ ", succ[0][0], " ", succ[0][1], " ", succ[1])
 
     print("Pred ",pre[0][0]," ",pre[0][1]," ",pre[1])
     for i in range(1,M+1):
@@ -258,7 +258,6 @@ def printState(nodeInfo):
 def  doStabilize(nodeInfo):
 
     while True:
-
         nodeInfo.checkPredecessor()
 
         nodeInfo.checkSuccessor()
@@ -279,10 +278,10 @@ def callNotify(nodeInfo, ipAndPort):
     #.pop_back()
     #ipAndPort.pop_back()
 
-    ipAndPortPair = help.getIpAndPort(ipAndPort)
+    ipAndPortPair = helper.getIpAndPort(ipAndPort)
     ip = ipAndPortPair[0]
     port = ipAndPortPair[1]
-    hash_code = help.getHash(ipAndPort)
+    hash_code = helper.getHash(ipAndPort)
 
     node = [[ip,port],hash_code]
 

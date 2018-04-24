@@ -10,8 +10,7 @@ def isBlank(st):
     return not (st and st.strip())
 
 newNode = Node()
-print("New node created, listening at port number " + str(newNode.getPortNumber()))
-print("New node created, listening at ip " + str(newNode.getIpAddress()))
+print("New node created, listening at port number " + str(newNode.getIpAddress())+' '+ str(newNode.getPortNumber()))
 print("Type help to know more")
 
 endLoop = False
@@ -54,7 +53,11 @@ while not endLoop:
             print("Invalid Command")
 
     elif len(arguments) == 2:
-        pass
+        if arguments[0] == "get":
+            if newNode.checkInRing() == False:
+                print("Sorry this node is not in the ring")
+            else:
+                functions.get(arguments[1], newNode)
 
     elif len(arguments) == 3:
         if arguments[0] == "join":
@@ -72,6 +75,12 @@ while not endLoop:
             except ValueError:
                 print("Please enter an integer")
             helper.getTest(arguments[1], arguments[2])
+
+        elif arguments[0] == "put":
+            if newNode.checkInRing() == False:
+                print("Sorry this node is not in the ring")
+            else:
+                functions.put(arguments[1],arguments[2], newNode)
         else:
             print("Invalid Command")
 
