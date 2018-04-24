@@ -40,18 +40,14 @@ def join(myNode, ip, port):
     #     return
     myId = myNode.getId()
 
-    newConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("about to connect to", ip, port)
-    try:
-        newConnection.connect((ip, int(port)))
-        newConnection.send(str(myId).encode('ascii'))
-        ipAndPort = newConnection.recv(1024).decode('ascii')
-        newConnection.close()
-    except socket.error as e:
-        print(str(e))
 
-    print("Successfully joined the ring")
-    print(ipAndPort)
+    msg = str(myId)
+    ipAndPort = helper.socket_send_recv(ip, port, msg, "No")
+
+    if ipAndPort != "No":
+        print("Successfully joined the ring")
+        print(ipAndPort)
 
     address = ipAndPort.split(":")
     idVal, port, hashVal = address[0], int(address[1]), helper.getHash(ipAndPort)
@@ -96,7 +92,8 @@ def doTask(myNode, clientConnection, clientAddress, msg):
     # predecessor of this node has left the ring and has sent all it's keys to this node(it's successor)
     if msg.find("storeKeys") != -1:
         helper.storeAllKeys(myNode, msg)
-        
+        helper.socket_send_only("1", clientConnection)       
+    
     elif msg.find("sendTest") != -1:
         helper.sendTest(clientConnection)
 
@@ -104,7 +101,7 @@ def doTask(myNode, clientConnection, clientAddress, msg):
     elif helper.isKeyValue(msg):
         keyAndVal = helper.getKeyAndVal(msg)
         myNode.storeKey(keyAndVal[0], keyAndVal[1])
-        clientConnection.send("1".encode('ascii'))
+        helper.socket_send_only("1", clientConnection)
     
     elif msg.find("alive") != -1:
         helper.sendAcknowledgement(client)
@@ -157,13 +154,8 @@ def leave(myNode):
         keysAndValues += str(keysAndValuesVector[i][0]) + ":" + keysAndValuesVector[i][1] + ""
     keysAndValues += "storeKeys"
 
-    newConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        newConnection.connect((successor[0][0], successor[0][1]))
-        newConnection.send(keysAndValues.encode('ascii'))
-        newConnection.close()
-    except socket.error as e:
-        print(str(e))
+    helper.socket_send_recv(successor[0][0], successor[0][1], keysAndValues, '')
+
     myNode.closeSocket()
 
 '''
@@ -283,7 +275,7 @@ def  doStabilize(nodeInfo):
 
 def callNotify(nodeInfo, ipAndPort):
 
-    ipAndPort = ipAndPort[2:]
+    ipAndPort = ipAndPort[:-2]
     #.pop_back()
     #ipAndPort.pop_back()
 

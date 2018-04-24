@@ -48,19 +48,11 @@ class Node(object):
 				
 				ip=node[0][0]
 				port=node[0][1]
+				msg = str(nodeId)
 				
-				sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-				
-				try:
-					sock.connect((ip, int(port)))
-					msg = str(nodeId)
-					sock.send(msg.encode('ascii'))
-					ipAndPort = sock.recv(4096).decode('ascii')
-					sock.close()
-				except socket.error as e:
-					print(str(e))
+				ipAndPort = helper.socket_send_recv(ip, port, msg, '')
 
-				if l < 0:
+				if len(ipAndPort) < 0:
 					node = [['',-1],-1]
 					return node
 
