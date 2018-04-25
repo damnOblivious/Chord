@@ -30,12 +30,12 @@ while not endLoop:
                 first.daemon = True
                 first.start()
                 print("Done!")
-        elif arguments[0] == "printstate":
+        elif arguments[0] == "state":
             if not newNode.checkInRing():
                 print("The current node is not associated to any ring")
             else:
                 functions.printState(newNode)
-        elif arguments[0] == "printkeys":
+        elif arguments[0] == "keys":
             if not newNode.checkInRing():
                 print("The current node is not associated to any ring")
             else:

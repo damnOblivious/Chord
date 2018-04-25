@@ -41,14 +41,6 @@ def storeAllKeys(myNode, keysAndValues):
 	for pair in res:
 		myNode.storeKey(pair[0],pair[1])
 
-def storeReplicaKeys(myNode, keysAndValues):
-
-	keysAndValues = keysAndValues[:-len('replica')]
-	
-	res = seperateKeysAndValues(keysAndValues)
-	for pair in res:
-		myNode.storeRepKey(pair[0],pair[1])
-
 '''
 	finds succesor of the given key
 	sends pi,port to the contacting node
@@ -56,8 +48,12 @@ def storeReplicaKeys(myNode, keysAndValues):
 	@return void
 '''
 def sendSuccessor(myNode, hashVal, clientConnection):
+
+	if 'SendSuccessorForThisKeyJoin' in hashVal:
+		hashVal = hashVal[:-len('SendSuccessorForThisKeyJoin')]
 	if 'SendSuccessorForThisKey' in hashVal:
 		hashVal = hashVal[:-len('SendSuccessorForThisKey')]
+	
 
 	hashVal = int(hashVal)
 	succesorNode = myNode.findSuccessor(hashVal)
@@ -74,7 +70,24 @@ def getKeysFromSuccessor(myNode, ip, port):
 
 	msg = "getKeys:" + str(myNode.getId())
 	keysAndValues = socket_send_recv(ip, port, msg, "")
-	# keysAndValues = "key1:val1;key2:val2;key3:val3;key4:val4;" 
+	res = seperateKeysAndValues(keysAndValues)
+	for pair in res:
+		myNode.storeKey(pair[0],pair[1])
+
+
+def getRepsFromSuccessor(myNode, ip, port):
+
+	msg = "getReplicas:" + str(myNode.getId())
+	keysAndValues = socket_send_recv(ip, port, msg, "")
+	res = seperateKeysAndValues(keysAndValues)
+	for pair in res:
+		myNode.storeRepKey(pair[0],pair[1])
+
+
+def getRecoveryKeysFromSuccessor(myNode, ip, port):
+
+	msg = "getRecoveryKeys:" + str(myNode.getId())
+	keysAndValues = socket_send_recv(ip, port, msg, "")
 	res = seperateKeysAndValues(keysAndValues)
 	for pair in res:
 		myNode.storeKey(pair[0],pair[1])
@@ -146,9 +159,8 @@ def sendSuccessorList(nodeInfo, client):
 def isNodeAlive(ip, port):
 	msg = "alive"
 	res = socket_send_recv(ip, port, msg, False)
-
 	if res == False:
-		return res
+		return False
 	return True
 
 
@@ -233,7 +245,34 @@ def sendNeccessaryKeys(nodeInfo, clientConnection, nodeIdString):
 
 	# will arrange all keys and val in form of key1:val1;key2:val2;
 	for key_val in keysAndValuesVector:
-		keysAndValues += str(key_val[0]) + ":" + str(key_val[0]) + ';'
+		keysAndValues += str(key_val[0]) + ":" + str(key_val[1]) + ';'
+
+	msg=keysAndValues
+	socket_reply(msg, clientConnection)
+
+def sendRecoveryKeys(nodeInfo, clientConnection, nodeIdString):
+	nodeId = int(nodeIdString.split(':')[1])
+
+	keysAndValuesVector = nodeInfo.getKeysForRecovery(nodeId)
+
+	keysAndValues = ""
+
+	# will arrange all keys and val in form of key1:val1;key2:val2;
+	for key_val in keysAndValuesVector:
+		keysAndValues += str(key_val[0]) + ":" + str(key_val[1]) + ';'
+
+	msg=keysAndValues
+	socket_reply(msg, clientConnection)
+
+
+def sendNeccessaryReplicas(nodeInfo, clientConnection, nodeIdString):
+	nodeId = int(nodeIdString.split(':')[1])
+
+	keysAndValues = ""
+
+	# will arrange all keys and val in form of key1:val1;key2:val2;
+	for key in nodeInfo.dictionary_rep:
+		keysAndValues += str(key) + ":" + str(nodeInfo.dictionary_rep[key]) + ';'
 
 	msg=keysAndValues
 	socket_reply(msg, clientConnection)
@@ -282,7 +321,8 @@ def socket_send_recv(ip, port, msg, no_res):
 		res = sock.recv(4096).decode('ascii')
 		sock.close()
 	except socket.error as e:
-		print(str(e))
+		# print(str(e))
+		print('Node has exited')
 		return no_res
 
 	return res

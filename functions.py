@@ -41,7 +41,7 @@ def join(myNode, ip, port):
     myId = myNode.getId()
 
 
-    msg = str(myId)+'SendSuccessorForThisKey'
+    msg = str(myId)+'SendSuccessorForThisKeyJoin'
     ipAndPort = helper.socket_send_recv(ip, port, msg, "No")
     if ipAndPort == "No":
         print('Error : ip address not found')
@@ -58,6 +58,7 @@ def join(myNode, ip, port):
         myNode.setInRing()
 
         helper.getKeysFromSuccessor(myNode , ip, port)
+        helper.getRepsFromSuccessor(myNode , ip, port)
 
         # launch threads,one thread will listen to request from other nodes,one will do stabilization
         second = threading.Thread(target=listenTo, args=(myNode,))
@@ -92,16 +93,6 @@ def doTask(myNode, clientConnection, clientAddress, msg):
     if msg.find("storeKeys") != -1:
         helper.storeAllKeys(myNode, msg)
         helper.socket_reply("1", clientConnection)
-
-    if msg.find("replica") != -1:
-        helper.storeReplicaKeys(myNode, msg)
-        helper.socket_reply("1", clientConnection)       
-    
-    elif msg.find("sendTest") != -1:
-        helper.sendTest(clientConnection)
-
-    # check if the sent msg is in form of key:val, if yes then store it in current node (for put )
-    
     
     elif msg.find("alive") != -1:
         helper.sendAcknowledgement(clientConnection)
@@ -113,6 +104,13 @@ def doTask(myNode, clientConnection, clientAddress, msg):
     # contacting node has just joined the ring and is asking for keys that belongs to it now
     elif msg.find("getKeys") != -1:
         helper.sendNeccessaryKeys(myNode,clientConnection,msg)
+
+    elif msg.find("getRecoveryKeys:") != -1:
+        helper.sendRecoveryKeys(myNode,clientConnection,msg)
+        
+
+    elif msg.find("getReplicas") != -1:
+        helper.sendNeccessaryReplicas(myNode,clientConnection,msg)
     
     # contacting node has run get command so send value of key it requires
     elif msg.find("GetThisKey") != -1:
@@ -146,6 +144,8 @@ def doTask(myNode, clientConnection, clientAddress, msg):
 
     elif msg.find("SendSuccessorForThisKey") != -1:
         helper.sendSuccessor(myNode, msg, clientConnection)
+        if 'Join' in msg:
+            print('A new node has joined!')
     else:
         print('message not recognized')
         helper.socket_reply("1", clientConnection)
@@ -293,6 +293,11 @@ def  doStabilize(nodeInfo):
         nodeInfo.updateSuccessorList()
 
         nodeInfo.fixFingers()
+
+        # nodeInfo.duplicateKeysRemoval()
+
+        nodeInfo.remove_empty_values()
+
 
         time.sleep(1)
    

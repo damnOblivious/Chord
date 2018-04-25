@@ -161,6 +161,7 @@ class Node(object):
 				self.successor[0][1] = self.getPortNumber()
 				self.successor[1] = self.id
 				self.setSuccessorList(self.successor[0][0],self.successor[0][1],self.id)
+				helper.getRecoveryKeysFromSuccessor(self,self.successor[0][0], self.successor[0][1])
 
 			self.predecessor[0][0] = ""
 			self.predecessor[0][1] = -1
@@ -172,10 +173,33 @@ class Node(object):
 
 		ip , port = self.successor[0][0], self.successor[0][1]
 
+		# print(helper.isNodeAlive(ip,port))
+
 		if helper.isNodeAlive(ip,port) == False:
-			# print('not alive->',self.successor[1])
-			self.successor = self.successorList[2][:]
+			
+			i=2
+			self.successor = self.successorList[i]
+			ip , port = self.successor[0][0], self.successor[0][1]
+
+			while helper.isNodeAlive(ip, port) == False and i<=R:
+
+				self.successor = self.successorList[i]
+				ip , port = self.successor[0][0], self.successor[0][1]
+
+				i+=1
+
+			if i>R:
+				self.successor = [[self.getIpAddress(), self.getPortNumber()], self.id]
+			
+
+			helper.getRecoveryKeysFromSuccessor(self,self.successor[0][0], self.successor[0][1])
+
+
 			self.updateSuccessorList()
+
+
+
+			#catastrophic failure, self = successor, save the keys
 
 	def updateSuccessorList(self):
 		if self.successor[1]!=self.id:
@@ -211,13 +235,13 @@ class Node(object):
 	'''store key and then replicate into r other successors'''
 	def storeKey(self, key, val):
 		
-		self.dictionary[key] = val
+		self.dictionary[int(key)] = val
 		
 		for i in self.successorList[1:]:
 			helper.socket_send_recv(i[0][0], i[0][1], str(key)+':'+str(val)+'StoreReplica', '')
 
 	def storeRepKey(self, key, val):
-		self.dictionary_rep[key] = val
+		self.dictionary_rep[int(key)] = val
 
 
 	def getAllKeysForSuccessor(self): #vector< pair<lli , string> >
@@ -230,18 +254,42 @@ class Node(object):
 	def getKeysForPredecessor(self, nodeId):#vector< pair<lli , string> >
 		res=[]
 		for item in self.dictionary:
-			keyId = item
+			keyId = int(item)
 
 			#if predecessor's id is more than current node's id
 			if self.id < nodeId:
 				if keyId > self.id and keyId <= nodeId:
 					res.append([keyId, self.dictionary[item]])
+					self.dictionary[item]=""
 
 			#if predecessor's id is less than current node's id
 			else:
 				if keyId <= nodeId or keyId > self.id:
 					res.append([keyId, self.dictionary[item]])
-		# self.dictionary = {}
+					self.dictionary[item]=""
+
+		return res
+	def getKeysForRecovery(self, nodeId):#vector< pair<lli , string> >
+		res=[]
+		for item in self.dictionary_rep:
+			keyId = int(item)
+
+			#if predecessor's id is more than current node's id
+			if self.id < nodeId:
+				if keyId > self.id and keyId <= nodeId:
+					res.append([keyId, self.dictionary_rep[item]])
+				else:
+					self.dictionary[int(item)] = self.dictionary_rep[int(item)]
+
+
+			#if predecessor's id is less than current node's id
+			else:
+				if keyId <= nodeId or keyId > self.id:
+					res.append([keyId, self.dictionary_rep[item]])
+
+				else:
+					self.dictionary[int(item)] = self.dictionary_rep[int(item)]
+
 		return res
 
 	def setSuccessor(self, ip, port, hash_code):
@@ -272,14 +320,14 @@ class Node(object):
 		return self.id
 
 	def getValue(self, key):
-		if key in self.dictionary:
-			return self.dictionary[key]
+		if int(key) in self.dictionary:
+			return self.dictionary[int(key)]
 		else:
 			return ""
 
 	def checkReplica(self, key):
-		if key in self.dictionary_rep:
-			return self.dictionary_rep[key]
+		if int(key) in self.dictionary_rep:
+			return self.dictionary_rep[int(key)]
 		else:
 			return ""
 
@@ -330,3 +378,23 @@ class Node(object):
 		key = ip + ":" + str(port)
 		hashVal = helper.getHash(key)
 		self.setId(hashVal);
+
+	def remove_empty_values(self):
+		for item in list(self.dictionary.keys()):
+			if self.dictionary[item]=='':
+				del self.dictionary[item]
+
+		for item in list(self.dictionary_rep.keys()):
+			if self.dictionary_rep[item]=='':
+				del self.dictionary_rep[item]
+
+	def duplicateKeysRemoval(self):
+		pred = self.predecessor[1]
+		for item in self.dictionary:
+			keyId = int(item)
+			if pred > self.id:
+				if keyId > self.id and keyId <= pred: 
+					self.dictionary[item]=''
+			elif pred< self.id:
+				if keyId <= pred or keyId > self.id:
+					self.dictionary[item]=''
