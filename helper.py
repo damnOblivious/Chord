@@ -34,10 +34,20 @@ def seperateKeysAndValues(keysAndValues):
 	leaving the ring and adds to it's dictionary
 '''
 def storeAllKeys(myNode, keysAndValues):
-	keysAndValues = keysAndValues[:-len(storeKeys)]
+
+	keysAndValues = keysAndValues[:-len('storeKeys')]
+	
 	res = seperateKeysAndValues(keysAndValues)
 	for pair in res:
 		myNode.storeKey(pair[0],pair[1])
+
+def storeReplicaKeys(myNode, keysAndValues):
+
+	keysAndValues = keysAndValues[:-len('replica')]
+	
+	res = seperateKeysAndValues(keysAndValues)
+	for pair in res:
+		myNode.storeRepKey(pair[0],pair[1])
 
 '''
 	finds succesor of the given key
@@ -46,11 +56,14 @@ def storeAllKeys(myNode, keysAndValues):
 	@return void
 '''
 def sendSuccessor(myNode, hashVal, clientConnection):
-	succesorNode = [['oblivious', 6556], 656565]
+	if 'SendSuccessorForThisKey' in hashVal:
+		hashVal = hashVal[:-len('SendSuccessorForThisKey')]
+
+	hashVal = int(hashVal)
 	succesorNode = myNode.findSuccessor(hashVal)
 	ipAndPort = succesorNode[0][0] + ":" + str(succesorNode[0][1])
 	msg = ipAndPort
-	socket_send_only(msg, clientConnection)
+	socket_reply(msg, clientConnection)
 
 '''
 	send msg to the succesor asking for (key,val) pairs that belongs to me
@@ -63,17 +76,22 @@ def getKeysFromSuccessor(myNode, ip, port):
 	keysAndValues = socket_send_recv(ip, port, msg, "")
 	# keysAndValues = "key1:val1;key2:val2;key3:val3;key4:val4;" 
 	res = seperateKeysAndValues(keysAndValues)
-	# print(res)
 	for pair in res:
 		myNode.storeKey(pair[0],pair[1])
 
 def sendValToNode(nodeInfo, client, nodeIdString):
-	nodeIdString = nodeIdString[:-1]
+	nodeIdString = nodeIdString[:-len("GetThisKey")]
 	key = int(nodeIdString)
-	print(key)
 	val = nodeInfo.getValue(key)
 	msg = val
-	socket_send_only(msg, client)
+	socket_reply(msg, client)
+
+def sendRepValToNode(nodeInfo, client, nodeIdString):
+	nodeIdString = nodeIdString[:-len("GetThisReplica")]
+	key = int(nodeIdString)
+	val = nodeInfo.checkReplica(key)
+	msg = val
+	socket_reply(msg, client)
 	
 
 def getSuccessorId(ip, port):
@@ -91,10 +109,10 @@ def getPredecessorNode(ip, port, ipClient, portClient, forStabilize):
 
 	if forStabilize == True:
 		msg = combineIpAndPort(ipClient,str(portClient))
-		msg += "p1"
+		msg += "GetPredecessorNotify"
 
 	else:
-		msg = "p2"
+		msg = "GetPredecessor"
 
 	ipAndPort = socket_send_recv(ip, port, msg, '')
 	node = [['',-1],-1]
@@ -113,16 +131,17 @@ def getSuccessorListFromNode(ip, port):
 	succList = socket_send_recv(ip, port, msg, [])
 	if len(succList) == 0: # no response
 		return []
-	successorList = seperateSuccessorList(succList)
 
+	successorList = seperateSuccessorList(succList)
 	return successorList
 #doubt
 def sendSuccessorList(nodeInfo, client):
 
 	successorList = nodeInfo.getSuccessorList()
+	# print(len(successorList))
 	successorList = splitSuccessorList(successorList)
 	msg = successorList
-	socket_send_only(msg, client)
+	socket_reply(msg, client)
 
 def isNodeAlive(ip, port):
 	msg = "alive"
@@ -138,7 +157,6 @@ def combineIpAndPort(ip, port):
 	return ipAndPort
 
 def getIpAndPort(key):
-	# print('ipandport->',key)
 	split = key.split(':')
 	if len(split)==2:
 		ip, port = key.split(':')
@@ -153,7 +171,7 @@ def getIpAndPort(key):
 def seperateSuccessorList(succList):
 	addresses = succList.split(';')
 	res=[]
-	for key in addresses:
+	for key in addresses[:-1]:
 		res.append(getIpAndPort(key))
 	return res
 
@@ -167,7 +185,7 @@ def splitSuccessorList(succList):
 
 def sendTest(clientConnection):
 	msg="This is test"
-	socket_send_only(msg, clientConnection)
+	socket_reply(msg, clientConnection)
 
 
 def getTest(ip, port):
@@ -182,7 +200,7 @@ def getTest(ip, port):
 # send ack to contacting node that this node is still alive 
 def sendAcknowledgement(clientConnection):
 	msg="1"
-	socket_send_only(msg, clientConnection)
+	socket_reply(msg, clientConnection)
 
 
 # send ip:port of predecessor of current node to contacting node 
@@ -194,7 +212,7 @@ def sendPredecessor(nodeInfo, clientConnection):
 	msg=''
 	ipAndPort = combineIpAndPort(ip,port)
 	msg = ipAndPort
-	socket_send_only(msg, clientConnection)
+	socket_reply(msg, clientConnection)
 	
 
 # send successor id of current node to the contacting node
@@ -202,7 +220,7 @@ def sendSuccessorId(nodeInfo, clientConnection):
 
 	succ = nodeInfo.getSuccessor()
 	msg = str(succ[1])
-	socket_send_only(msg, clientConnection)
+	socket_reply(msg, clientConnection)
 
 
 # send all keys to the newly joined node which belong to it now 
@@ -215,10 +233,10 @@ def sendNeccessaryKeys(nodeInfo, clientConnection, nodeIdString):
 
 	# will arrange all keys and val in form of key1:val1;key2:val2;
 	for key_val in keysAndValuesVector:
-		keysAndValues += str(key_val[0]) + ":" + key_val[0] + ';'
+		keysAndValues += str(key_val[0]) + ":" + str(key_val[0]) + ';'
 
 	msg=keysAndValues
-	socket_send_only(msg, clientConnection)
+	socket_reply(msg, clientConnection)
 	
 
 
@@ -227,7 +245,7 @@ def sendKeyToNode(node, keyHash, value):
 
 	ip = node[0][0]
 	port = int(node[0][1])
-	keyAndVal = str(keyHash)+':'+str(value)
+	keyAndVal = str(keyHash)+':'+str(value)+"StoreThisKey"
 	msg = keyAndVal
 	res = socket_send_recv(ip, port, msg, '')
 
@@ -237,7 +255,17 @@ def getKeyFromNode(node, keyHash):
 	ip = node[0][0];
 	port = int(node[0][1])
 
-	keyHash += "k";
+	keyHash += "GetThisKey";
+	msg = keyHash
+	res = socket_send_recv(ip, port, msg, '')
+
+	return res
+
+def getKeyFromNodeReplica(node, keyHash):
+	ip = node[0][0];
+	port = int(node[0][1])
+
+	keyHash += "GetThisReplica";
 	msg = keyHash
 	res = socket_send_recv(ip, port, msg, '')
 
@@ -259,7 +287,7 @@ def socket_send_recv(ip, port, msg, no_res):
 
 	return res
 
-def socket_send_only(msg, clientConnection):
+def socket_reply(msg, clientConnection):
 	try:
 		clientConnection.send(msg.encode('ascii'))
 	except socket.error as e:
@@ -271,7 +299,6 @@ def isKeyValue(key_val):
 	if ':' not in key_val:
 		return False
 	key, val = key_val.split(':')
-	print(key, val)	
 	for i in key:
 		if int(i) <0 or int(i)>9:
 			return False
@@ -280,9 +307,9 @@ def isKeyValue(key_val):
 
 
 # key will be in form of key:value , will seperate key and value and return it 
-def getKeyAndVal(keyAndVal):
+def getKeyAndVal(keyAndVal, message):
+	keyAndVal = keyAndVal[:-len(message)]
 
 	key, val = keyAndVal.split(':')
 	key = int(key)
-	print('inserted->',key, val)
 	return [key,val]

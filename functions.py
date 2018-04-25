@@ -41,7 +41,7 @@ def join(myNode, ip, port):
     myId = myNode.getId()
 
 
-    msg = str(myId)
+    msg = str(myId)+'SendSuccessorForThisKey'
     ipAndPort = helper.socket_send_recv(ip, port, msg, "No")
     if ipAndPort == "No":
         print('Error : ip address not found')
@@ -91,7 +91,11 @@ def doTask(myNode, clientConnection, clientAddress, msg):
     # predecessor of this node has left the ring and has sent all it's keys to this node(it's successor)
     if msg.find("storeKeys") != -1:
         helper.storeAllKeys(myNode, msg)
-        helper.socket_send_only("1", clientConnection)       
+        helper.socket_reply("1", clientConnection)
+
+    if msg.find("replica") != -1:
+        helper.storeReplicaKeys(myNode, msg)
+        helper.socket_reply("1", clientConnection)       
     
     elif msg.find("sendTest") != -1:
         helper.sendTest(clientConnection)
@@ -111,15 +115,18 @@ def doTask(myNode, clientConnection, clientAddress, msg):
         helper.sendNeccessaryKeys(myNode,clientConnection,msg)
     
     # contacting node has run get command so send value of key it requires
-    elif msg.find("k") != -1:
+    elif msg.find("GetThisKey") != -1:
         helper.sendValToNode(myNode,clientConnection,msg)
+
+    elif msg.find("GetThisReplica") != -1:
+        helper.sendRepValToNode(myNode,clientConnection,msg)
     
     # contacting node wants the predecessor of this node
-    elif msg.find("p") != -1:
+    elif msg.find("GetPredecessor") != -1:
         helper.sendPredecessor(myNode,clientConnection)
         # p1 in msg means that notify the current node about this contacting node
     
-        if msg.find("p1") != -1:
+        if msg.find("GetPredecessorNotify") != -1:
             callNotify(myNode,msg)
     
     # contacting node wants successor Id of this node for help in finger table
@@ -127,13 +134,22 @@ def doTask(myNode, clientConnection, clientAddress, msg):
         helper.sendSuccessorId(myNode,clientConnection)
     
     # contacting node wants current node to find successor for it
-    elif helper.isKeyValue(msg):
-        keyAndVal = helper.getKeyAndVal(msg)
+    elif msg.find("StoreThisKey") != -1:
+        keyAndVal = helper.getKeyAndVal(msg, "StoreThisKey")
         myNode.storeKey(keyAndVal[0], keyAndVal[1])
-        helper.socket_send_only("1", clientConnection)
+        helper.socket_reply("1", clientConnection)
+
+    elif msg.find("StoreReplica") != -1:
+        keyAndVal = helper.getKeyAndVal(msg, "StoreReplica")
+        myNode.storeRepKey(keyAndVal[0], keyAndVal[1])
+        helper.socket_reply("1", clientConnection)
+
+    elif msg.find("SendSuccessorForThisKey") != -1:
+        helper.sendSuccessor(myNode, msg, clientConnection)
     else:
-        helper.sendSuccessor(myNode, int(msg), clientConnection)
-    
+        print('message not recognized')
+        helper.socket_reply("1", clientConnection)
+
     clientConnection.close()
 
 '''
@@ -151,7 +167,7 @@ def leave(myNode):
     keysAndValues = ""
     '''arrange all keys and val in form of key1:val1;key2:val2;'''
     for item in keysAndValuesVector:
-        keysAndValues += str(keysAndValuesVector[i][0]) + ":" + keysAndValuesVector[i][1] + ""
+        keysAndValues += str(item[0]) + ":" + str(item[1]) + ";"
     keysAndValues += "storeKeys"
 
     helper.socket_send_recv(successor[0][0], successor[0][1], keysAndValues, '')
@@ -223,7 +239,17 @@ def get(key, nodeInfo):
         val = helper.getKeyFromNode(node,str(keyHash))
 
         if val == "":
-            print("Key Not found")
+            
+            print("Key Not found in node, maybe the node got deleted.")
+            print("Checking in Successors for Replica")
+            
+            val = helper.getKeyFromNodeReplica(node,str(keyHash))
+
+            if val == "":
+                print("Key does not exist!")
+            else:
+                print("Found ",key," : ",val)
+
 
         else:
             print("Found ",key," : ",val)
@@ -268,13 +294,13 @@ def  doStabilize(nodeInfo):
 
         nodeInfo.fixFingers()
 
-        time.sleep(3)
+        time.sleep(1)
    
 
 
 def callNotify(nodeInfo, ipAndPort):
 
-    ipAndPort = ipAndPort[:-2]
+    ipAndPort = ipAndPort[:-len("GetPredecessorNotify")]
     #.pop_back()
     #ipAndPort.pop_back()
 

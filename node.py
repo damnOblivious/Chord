@@ -10,6 +10,7 @@ class Node(object):
 	def __init__(self):
 		self.id = 0
 		self.dictionary = {}
+		self.dictionary_rep = {}
 		self.isInRing = False
 		self.successor = [["", 0], 0]
 		self.predecessor= [["", 0], 0]
@@ -48,7 +49,7 @@ class Node(object):
 				
 				ip=node[0][0]
 				port=node[0][1]
-				msg = str(nodeId)
+				msg = str(nodeId)+'SendSuccessorForThisKey'
 				
 				ipAndPort = helper.socket_send_recv(ip, port, msg, '')
 
@@ -87,6 +88,7 @@ class Node(object):
 
 
 				predNode = helper.getPredecessorNode(self.fingerTable[i][0][0],self.fingerTable[i][0][1],"",-1,False)
+				
 				predecessorId = predNode[1]
 
 				if predecessorId != -1 and self.fingerTable[i][1] < predecessorId:
@@ -172,28 +174,51 @@ class Node(object):
 
 		if helper.isNodeAlive(ip,port) == False:
 			# print('not alive->',self.successor[1])
-			self.successor = self.successorList[2]
+			self.successor = self.successorList[2][:]
 			self.updateSuccessorList()
 
 	def updateSuccessorList(self):
+		if self.successor[1]!=self.id:
+			suc_list = helper.getSuccessorListFromNode(self.successor[0][0],self.successor[0][1])
+		
 
-		suc_list = helper.getSuccessorListFromNode(self.successor[0][0],self.successor[0][1])
-		if len(suc_list) != R:
-			return
+			if len(suc_list) != R+1:
+				return
 
-		self.successorList[1] = self.successor
+			self.successorList[1] = self.successor
 
-		for i in range(2,R+1):
-			self.successorList[i][0][0] = suc_list[i-2][0]
-			self.successorList[i][0][1] = suc_list[i-2][1]
-			self.successorList[i][1] = helper.getHash(suc_list[i-2][0] + ":" + to_string(suc_list[i-2][1]))
+			for i in range(2,R+1):
+				self.successorList[i][0][0] = suc_list[i-1][0]
+				self.successorList[i][0][1] = suc_list[i-1][1]
+				self.successorList[i][1] = helper.getHash(suc_list[i-1][0] + ":" + str(suc_list[i-1][1]))
+		else:
+			suc_list = self.successorList
+			self.successorList[1] = self.successor
+
+			for i in range(2,R+1):
+				self.successorList[i][0][0] = suc_list[i-1][0][0]
+				self.successorList[i][0][1] = suc_list[i-1][0][1]
+				self.successorList[i][1] = suc_list[i-1][1]
 
 	def printKeys(self):
 		for item in self.dictionary:
 			print (item, self.dictionary[item])
 
+
+	def printRepKeys(self):
+		for item in self.dictionary_rep:
+			print (item, self.dictionary_rep[item])
+	'''store key and then replicate into r other successors'''
 	def storeKey(self, key, val):
+		
 		self.dictionary[key] = val
+		
+		for i in self.successorList[1:]:
+			helper.socket_send_recv(i[0][0], i[0][1], str(key)+':'+str(val)+'StoreReplica', '')
+
+	def storeRepKey(self, key, val):
+		self.dictionary_rep[key] = val
+
 
 	def getAllKeysForSuccessor(self): #vector< pair<lli , string> >
 		res=[]
@@ -216,7 +241,7 @@ class Node(object):
 			else:
 				if keyId <= nodeId or keyId > self.id:
 					res.append([keyId, self.dictionary[item]])
-		self.dictionary = {}
+		# self.dictionary = {}
 		return res
 
 	def setSuccessor(self, ip, port, hash_code):
@@ -249,6 +274,12 @@ class Node(object):
 	def getValue(self, key):
 		if key in self.dictionary:
 			return self.dictionary[key]
+		else:
+			return ""
+
+	def checkReplica(self, key):
+		if key in self.dictionary_rep:
+			return self.dictionary_rep[key]
 		else:
 			return ""
 

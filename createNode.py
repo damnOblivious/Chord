@@ -10,8 +10,7 @@ def isBlank(st):
     return not (st and st.strip())
 
 newNode = Node()
-print("New node created, listening at port number " + str(newNode.getIpAddress())+' '+ str(newNode.getPortNumber()))
-print("Type help to know more")
+print("Running at " + str(newNode.getIpAddress())+' '+ str(newNode.getPortNumber()))
 
 endLoop = False
 command = ''
@@ -26,10 +25,11 @@ while not endLoop:
             if newNode.checkInRing():
                 print("The node is already in a ring, so can't create a new ring with it")
             else:
-                print("----------------------------->creating")
+                print("creating")
                 first = threading.Thread(target=functions.create, args=(newNode,))
                 first.daemon = True
                 first.start()
+                print("Done!")
         elif arguments[0] == "printstate":
             if not newNode.checkInRing():
                 print("The current node is not associated to any ring")
@@ -39,7 +39,11 @@ while not endLoop:
             if not newNode.checkInRing():
                 print("The current node is not associated to any ring")
             else:
+
                 newNode.printKeys()
+                print("Replicated Keys:")
+                newNode.printRepKeys()
+
         elif arguments[0] == "leave":
             functions.leave(newNode)
             endLoop = True
@@ -80,7 +84,7 @@ while not endLoop:
             if newNode.checkInRing() == False:
                 print("Sorry this node is not in the ring")
             else:
-                functions.put(arguments[1],arguments[2], newNode)
+                functions.put(str(arguments[1]),str(arguments[2]), newNode)
         else:
             print("Invalid Command")
 
