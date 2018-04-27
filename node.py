@@ -41,16 +41,16 @@ class Node(object):
 			node = self.closestPrecedingNode(nodeId)
 			if node[1] == self.id:
 				return self.successor
-			else:				
-                
+			else:
+
 				#/* if this node couldn't find closest preciding node for given node id then now ask it's successor to do so */
 				if node[1] == -1:
 					node = self.successor
-				
+
 				ip=node[0][0]
 				port=node[0][1]
 				msg = str(nodeId)+'SendSuccessorForThisKey'
-				
+
 				ipAndPort = helper.socket_send_recv(ip, port, msg, '')
 
 				if len(ipAndPort) <= 0:
@@ -88,7 +88,7 @@ class Node(object):
 
 
 				predNode = helper.getPredecessorNode(self.fingerTable[i][0][0],self.fingerTable[i][0][1],"",-1,False)
-				
+
 				predecessorId = predNode[1]
 
 				if predecessorId != -1 and self.fingerTable[i][1] < predecessorId:
@@ -176,7 +176,7 @@ class Node(object):
 		# print(helper.isNodeAlive(ip,port))
 
 		if helper.isNodeAlive(ip,port) == False:
-			
+
 			i=2
 			self.successor = self.successorList[i]
 			ip , port = self.successor[0][0], self.successor[0][1]
@@ -190,7 +190,7 @@ class Node(object):
 
 			if i>R:
 				self.successor = [[self.getIpAddress(), self.getPortNumber()], self.id]
-			
+
 
 			helper.getRecoveryKeysFromSuccessor(self,self.successor[0][0], self.successor[0][1])
 
@@ -204,7 +204,7 @@ class Node(object):
 	def updateSuccessorList(self):
 		if self.successor[1]!=self.id:
 			suc_list = helper.getSuccessorListFromNode(self.successor[0][0],self.successor[0][1])
-		
+
 
 			if len(suc_list) != R+1:
 				return
@@ -234,9 +234,9 @@ class Node(object):
 			print (item, self.dictionary_rep[item])
 	'''store key and then replicate into r other successors'''
 	def storeKey(self, key, val):
-		
+
 		self.dictionary[int(key)] = val
-		
+
 		for i in self.successorList[1:]:
 			helper.socket_send_recv(i[0][0], i[0][1], str(key)+':'+str(val)+'StoreReplica', '')
 
@@ -361,6 +361,15 @@ class Node(object):
 			print(str(e))
 		self.soc.listen(128)
 
+	def updateSocket(self):
+		'''
+			close the existing socket and
+			create a new socket at any ip = host and
+		'''
+		self.closeSocket()
+		self.initiateSocket()
+        self.intializeId()
+
 	def getNodeSock(self):
 		return self.soc
 
@@ -393,7 +402,7 @@ class Node(object):
 		for item in self.dictionary:
 			keyId = int(item)
 			if pred > self.id:
-				if keyId > self.id and keyId <= pred: 
+				if keyId > self.id and keyId <= pred:
 					self.dictionary[item]=''
 			elif pred< self.id:
 				if keyId <= pred or keyId > self.id:
