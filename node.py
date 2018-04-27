@@ -363,12 +363,12 @@ class Node(object):
 
 	def updateSocket(self):
 		'''
-			close the existing socket and
-			create a new socket at any ip = host and
+		close the existing socket and
+		create a new socket at any ip = host and
 		'''
 		self.closeSocket()
 		self.initiateSocket()
-        self.intializeId()
+		self.intializeId()
 
 	def getNodeSock(self):
 		return self.soc

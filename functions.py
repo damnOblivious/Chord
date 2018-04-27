@@ -46,9 +46,9 @@ def join(myNode, ip, port):
         print('Error : ip address not found')
     else:
         while myId == helper.getHash(ipAndPort):
+            print("have same HASH", str(myId), " so going to update mine")
             myNode.updateSocket()
             myId = myNode.getId()
-            print("had same HASH, so updated mine")
             msg = str(myId)+'SendSuccessorForThisKeyJoin'
             ipAndPort = helper.socket_send_recv(ip, port, msg, "No")
 
